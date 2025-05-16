@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Vizualizácia meraní</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    label { display: inline-block; width: 150px; }
+    #logTable { border-collapse: collapse; margin-top: 20px; }
+    #logTable td, #logTable th { border: 1px solid #ccc; padding: 6px 12px; }
+  </style>
+</head>
+<body>
+
+  <h2>Vizualizácia meraní</h2>
+
+  <div style="margin-bottom: 10px;">
+    <label for="sourceSelect">Zdroj dát:</label>
+    <select id="sourceSelect">
+      <option value="file">Súbor</option>
+      <option value="db">Databáza</option>
+    </select>
+  </div>
+
+  <div style="margin-bottom: 10px;">
+    <label for="jsonId">Zadaj ID merania:</label>
+    <input type="number" id="jsonId" value="1" min="1">
+    <button id="loadBtn">Načítať dáta</button>
+  </div>
+
+  <div id="plotdiv" style="width:800px;height:400px;"></div>
+
+  <h3>Zoznam hodnôt</h3>
+  <table id="logTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Čas</th>
+        <th>Hodnota</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    function loadData() {
+      const id = $('#jsonId').val();
+      const source = $('#sourceSelect').val();
+      const endpoint = source === 'file' ? '/filedata/' : '/dbdata/';
+      const url = endpoint + id;
+
+      console.log("Načítavam z: " + url);
+
+      $.ajax({
+        type: "GET",
+        url: url,
+        success: function(data) {
+          console.log("Načítané dáta:", data);
+
+          if (data.error) {
+            alert("Chyba: " + data.error);
+            return;
+          }
+
+          const x = [], y = [];
+          const tableBody = $('#logTable tbody');
+          tableBody.empty();
+
+          for (let i = 0; i < data.length; i++) {
+            x.push(data[i].timestamp);
+            y.push(data[i].value);
+
+            const row = `<tr>
+              <td>${i + 1}</td>
+              <td>${data[i].timestamp}</td>
+              <td>${data[i].value}</td>
+            </tr>`;
+            tableBody.append(row);
+          }
+
+          const trace = [{
+            x: x,
+            y: y,
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'value'
+          }];
+
+          const layout = {
+            title: "Zdroj: " + source + " (ID " + id + ")",  // ✅ oprava
+            xaxis: { title: 'Čas' },
+            yaxis: { title: 'value' }
+          };
+
+          Plotly.newPlot('plotdiv', trace, layout);
+        },
+        error: function(err) {
+          alert("Chyba pri načítaní dát.");
+          console.error("Detail chyby:", err);
+        }
+      });
+    }
+
+    $(document).ready(function() {
+      $('#loadBtn').click(loadData);
+      $('#sourceSelect, #jsonId').on('change keypress', function(e) {
+        if (e.type === 'change' || e.which === 13) {
+          loadData();
+        }
+      });
+
+      loadData();
+    });
+  </script>
+
+</body>
+</html>

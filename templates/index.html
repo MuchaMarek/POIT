@@ -1,0 +1,134 @@
+<!DOCTYPE HTML>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>IoT Monitorovací Systém</title>
+  <script src="//code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    .section { margin-bottom: 25px; }
+    label { display: inline-block; width: 180px; }
+    input, select { margin-bottom: 8px; }
+    .gauge { width: 250px; display: inline-block; }
+    #log { max-height: 200px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+  </style>
+</head>
+<body>
+
+  <h1>IoT Monitorovanie a Regulácia</h1>
+
+  <!-- 1. Open system -->
+  <div class="section">
+    <button id="btnOpen">Open</button>
+    <button id="btnClose">Close</button>
+  </div>
+
+  <!-- 2. Parametre -->
+  <div class="section">
+    <h3>Nastavenie parametrov</h3>
+    <form id="paramsForm">
+      <label>Interval (sekundy):</label><input type="number" step="0.1" id="interval" value="1"><br>
+      <label>Režim:</label>
+      <select id="mode">
+        <option value="monitor">Monitor</option>
+        <option value="control">Regulácia</option>
+      </select><br>
+      <button type="submit">Nastaviť parametre</button>
+    </form>
+  </div>
+
+  <!-- 3. Start / Stop -->
+  <div class="section">
+    <button id="btnStart">Start</button>
+    <button id="btnStop">Stop</button>
+  </div>
+
+  <!-- 4. Výpis údajov -->
+  <div class="section">
+    <h3>Monitorované údaje (zoznam)</h3>
+    <div id="log"></div>
+  </div>
+
+  <!-- 5. Graf -->
+  <div class="section">
+    <h3>Graf výstupov</h3>
+    <div id="graph" style="width:600px;height:300px;"></div>
+  </div>
+
+  <!-- 6. Ciferník (gauge) -->
+  <div class="section">
+    <h3>Ciferník (ukazovateľ)</h3>
+    <div id="gauge"></div>
+  </div>
+
+  <script>
+    let socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + '/test');
+    let xData = [], yData = [];
+
+    function updateGraph(x, y) {
+      xData.push(x);
+      yData.push(y);
+      if (xData.length > 50) {
+        xData.shift(); yData.shift();
+      }
+      Plotly.newPlot('graph', [{
+        x: xData,
+        y: yData,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Senzor'
+      }], {
+        margin: { t: 10 }
+      });
+    }
+
+    function updateGauge(val) {
+      Plotly.newPlot('gauge', [{
+        type: "indicator",
+        mode: "gauge+number",
+        value: val,
+        title: { text: "Senzor" },
+        gauge: {
+          axis: { range: [null, 300] },
+          steps: [
+            { range: [0, 100], color: "lightgreen" },
+            { range: [101, 200], color: "yellow" },
+            { range: [201, 300], color: "orange" }
+          ],
+        }
+      }]);
+    }
+
+    // Buttons
+    $('#btnOpen').click(() => socket.emit('open_event'));
+    $('#btnClose').click(() => socket.emit('close_event'));
+    $('#btnStart').click(() => socket.emit('start_event'));
+    $('#btnStop').click(() => socket.emit('stop_event'));
+
+    // Parameter form
+    $('#paramsForm').submit(function(e) {
+      e.preventDefault();
+      socket.emit('params_event', {
+        interval: $('#interval').val(),
+        mode: $('#mode').val()
+      });
+    });
+
+    // Socket events
+    socket.on('sensor_data', function(msg) {
+      const value = parseFloat(msg.data);
+      const timestamp = new Date().toLocaleTimeString();
+      $('#log').append(timestamp + " - " + value + "<br>");
+      updateGraph(timestamp, value);
+      updateGauge(value);
+    });
+
+    socket.on('open_response', msg => $('#log').append("<b>Open:</b> " + msg.message + "<br>"));
+    socket.on('params_response', msg => $('#log').append("<b>Parametre:</b> " + msg.message + "<br>"));
+    socket.on('info', msg => $('#log').append("<i>" + msg + "</i><br>"));
+  </script>
+
+</body>
+</html>
