@@ -85,7 +85,7 @@ def background_thread():
     def hello():
         print("hello")
 
-    # Funkcia neviem printuje String "nieco pre  dalsi commit"
+    # Funkcia neviem printuje String "nieco pre dalsi commit"
     def neviem():
         print("nieco pre dalsi commit")
 
