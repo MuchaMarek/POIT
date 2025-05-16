@@ -81,7 +81,7 @@ def background_thread():
             except Exception as e:
                 print("Chyba pri čítaní zo senzora:", e)
 
-    # Funkcia hello printuje hello
+    # Funkcia hello printuje "hello"
     def hello():
         print("hello")
 
