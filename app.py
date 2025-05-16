@@ -81,6 +81,8 @@ def background_thread():
             except Exception as e:
                 print("Chyba pri čítaní zo senzora:", e)
 
+    def hello():
+        print("hello")
 
 # ========== ROUTES ==========
 @app.route('/')
