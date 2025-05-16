@@ -84,6 +84,9 @@ def background_thread():
     def hello():
         print("hello")
 
+    def neviem():
+        print("nieco pre dalsi commit")
+
 # ========== ROUTES ==========
 @app.route('/')
 def index():
